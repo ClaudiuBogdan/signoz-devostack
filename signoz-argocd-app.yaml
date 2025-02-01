@@ -1,0 +1,54 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: signoz-prod
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: 'https://charts.signoz.io'
+    chart: signoz
+    targetRevision: "0.70.1"
+    helm:
+      values: |-
+        global:
+          storageClass: "default"
+          retention:
+            metrics: 30d
+            traces: 30d
+            logs: 30d
+          resources:
+            enabled: true
+            limits:
+              cpu: "1"
+              memory: "2Gi"
+
+        clickhouse:
+          replicas: 1
+          persistence:
+            size: 50Gi
+          zookeeper:
+            enabled: false
+
+        queryService:
+          replicas: 1
+          autoscaling:
+            enabled: false
+
+        frontend:
+          ingress:
+            enabled: false
+          service:
+            type: ClusterIP
+
+        k8s-infra:
+          enabled: false
+  destination:
+    server: 'https://kubernetes.default.svc'
+    namespace: signoz
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true 
